@@ -1,0 +1,14 @@
+Package: nlpcam
+Version: 0.0.0
+Date: 2019-03-29
+Title: NLP - Camara dos Deputados
+Description: Tools to download and parse data from plenary sessions transcripts of the Chamber of Deputies of Brazil
+Author: Bruno Ritter <ritter.brf@gmail.com>
+Imports:
+	dplyr,
+	purrr,
+	pdftools,
+	stringr,
+	httr,
+	rvest
+RoxygenNote: 6.1.1
