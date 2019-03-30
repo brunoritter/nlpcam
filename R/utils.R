@@ -2,62 +2,62 @@ pdf_downloader <- function(day, month, year) {
   url <- 'https://www.camara.leg.br/internet/plenario/notas/notas.asp'
   query <- list('dia'= day,
                 'mes'= month,
-                'ano'= year) 
-  
-  
+                'ano'= year)
+
+
   response <- httr::GET(url = url, query = query)
   response_html <- httr::content(response)
-  
-  links <- response_html %>% 
-    rvest::html_node('ul') %>% 
-    rvest::html_children() %>% 
-    rvest::html_children() %>% 
-    rvest::html_children() %>% 
-    rvest::html_attr('href')
-  
-  text <- response_html %>% 
+
+  links <- response_html %>%
     rvest::html_node('ul') %>%
-    rvest::html_children() %>% 
-    rvest::html_children() %>% 
+    rvest::html_children() %>%
+    rvest::html_children() %>%
+    rvest::html_children() %>%
+    rvest::html_attr('href')
+
+  text <- response_html %>%
+    rvest::html_node('ul') %>%
+    rvest::html_children() %>%
+    rvest::html_children() %>%
     rvest::html_text()
-  
+
   solene <- which(grepl('Solene', text))
-  
+
   if (length(solene) > 0) {
-    links_plenario <- links[-solene]  
+    links_plenario <- links[-solene]
   } else {
     links_plenario <- links
   }
-  
-  
+
+
   files <- c()
   if(length(links_plenario) > 0) {
     for (i in seq_along(links_plenario)) {
       file_name <- paste0(i,'_',day,'_',month,'_',year)
       download.file(
-        links_plenario[i], 
-        file_name, 
+        links_plenario[i],
+        file_name,
         mode = 'wb')
       files <- append(files, file_name)
     }}
-  
+
   return(files)
-  
+
 }
 
 
 pdf_parser <- function(file) {
   pdf <- pdftools::pdf_text(file)
-  
-  
+
+
   date <-
     stringr::str_extract(pdf[1], '[\\d]{2}\\/[\\d]{2}\\/[\\d]{4}')
-  
-  
+
+
   clean <- stringr::str_replace(pdf, '.*\\\r', '')
   clean <- paste(clean, collapse = ' ')
   clean <- gsub('\\n|\\r', ' ', clean)
-  
+
   citations <-
     unlist(strsplit(clean, '(?<=.)(?= (O SR\\.|A SRA\\.) .*\\(.*\\) - )', perl = T))
   citations <- dplyr::tibble(citations)
@@ -71,16 +71,16 @@ pdf_parser <- function(file) {
     ),
     'M',
     'F')
-  
+
   citations$name <-
     gsub('( O SR\\. | A SRA\\. )(.*)( \\(.*)', '\\2', citations$identifier)
 
-  
-  citations$president <- ifelse(citations$name == 'PRESIDENTE', 1, 0)  
+
+  citations$president <- ifelse(citations$name == 'PRESIDENTE', 1, 0)
   citations$name <- ifelse(citations$name == 'PRESIDENTE',
                            sub('(.*\\()(.*)(\\..*)', '\\2', x = citations$identifier) %>% toupper(),
                            citations$name)
-  
+
   session_type <-
     stringr::str_extract(citations$citations[1], '(?<=\\()SESSÃO.*?(?=\\))')
   session_n <-
@@ -91,13 +91,13 @@ pdf_parser <- function(file) {
     gsub('( (O SR\\.|A SRA\\.) .*\\(.*\\) - )(.*)',
          '\\3',
          citations$citations)
-  
+
   session_start_time <-
     stringr::str_extract_all(pattern = '(?<=Às )[\\d]+|[\\d]+(?= minutos)', string =  citations$citations[1]) %>% unlist() %>% paste(collapse = ':')
-  
+
   session_end_time <-
     stringr::str_extract_all(pattern = '(?<=Encerra-se a sessão às )[\\d]+|[\\d]+(?= minutos)', string =  citations$citations[nrow(citations)]) %>% unlist() %>% paste(collapse = ':')
-  
+
   citations <-
     citations %>% dplyr::select(name, president, gender, quote = citations) %>% dplyr::filter(!is.na(name))
   citations$date <- date
@@ -106,23 +106,25 @@ pdf_parser <- function(file) {
   citations$session_start_time <- session_start_time
   citations$session_end_time <- session_end_time
   citations$legislature <- session_legislature
-  
+
   citations$word_count <- stringr::str_count(citations$quote, '\\S+')
   citations$sequence <- c(1:nrow(citations))
   return(citations)
-  
+
 }
 
+#' Get Plenary Data
+#'
 #' Crawls trough plenary session transcripts between defined dates, downloads PDF files and parse data
-#' 
+#'
 #' @param initial.date (\code{character}) defining first date to include in the search
 #' @param final.date (\code{character}) defining last date to include in the search
 #' @param format specify which date format is being used as input
-#' 
+#'
 #' @return a tibble with one row for each speech
-#' 
+#'
 #' @examples plenary_data <- get_data('20/03/2019', '27/03/2019', format = '%d/%m/%Y')
-#' 
+#'
 #' @export
 
 get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
@@ -130,24 +132,24 @@ get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
   initial.date <- as.Date(initial.date, format)
   final.date <- as.Date(final.date, format)
 
-  search_grid <- 
-    seq(initial.date,final.date, by = 'days') %>% 
-    dplyr::tibble() %>% 
+  search_grid <-
+    seq(initial.date,final.date, by = 'days') %>%
+    dplyr::tibble() %>%
     dplyr::mutate(
       day = day(.),
       month = month(.),
       year = year(.)
-    ) %>% 
+    ) %>%
     dplyr::select(-.)
-    
+
   files <- purrr::pmap(search_grid, pdf_downloader) %>% unlist()
-  
+
   data <- purrr::map_df(files, pdf_parser)
-  
+
   return(data)
-  
+
   }
-                    
+
 
 
 

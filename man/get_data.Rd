@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{get_data}
 \alias{get_data}
-\title{Crawls trough plenary session transcripts between defined dates, downloads PDF files and parse data}
+\title{Get Plenary Data}
 \usage{
 get_data(initial.date, final.date, format = "\%d/\%m/\%Y")
 }
