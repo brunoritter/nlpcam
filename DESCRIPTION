@@ -10,5 +10,6 @@ Imports:
 	pdftools,
 	stringr,
 	httr,
-	rvest
+	rvest,
+	lubridate
 RoxygenNote: 6.1.1
