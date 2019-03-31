@@ -84,7 +84,7 @@ pdf_parser <- function(file) {
   session_type <-
     stringr::str_extract(citations$citations[1], '(?<=\\()SESSÃO.*?(?=\\))')
   session_n <-
-    unlist(str_extract_all(citations$citations[1], '[\\d]+ª SESSÃO'))[2] %>% gsub(pattern = 'ª SESSÃO', replacement =  '')
+    unlist(stringr::str_extract_all(citations$citations[1], '[\\d]+ª SESSÃO'))[2] %>% gsub(pattern = 'ª SESSÃO', replacement =  '')
   session_legislature <-
     stringr::str_extract(citations$citations[1] , '[\\d]+(?=ª LEGISLATURA)')
   citations$citations <-
@@ -136,15 +136,22 @@ get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
     seq(initial.date,final.date, by = 'days') %>%
     dplyr::tibble() %>%
     dplyr::mutate(
-      day = day(.),
-      month = month(.),
-      year = year(.)
+      day = lubridate::day(.),
+      month = lubridate::month(.),
+      year = lubridate::year(.)
     ) %>%
     dplyr::select(-.)
 
   files <- purrr::pmap(search_grid, pdf_downloader) %>% unlist()
 
   data <- purrr::map_df(files, pdf_parser)
+  data <- dplyr::left_join(data,
+                           dep_data %>%
+                             select(name = nome,
+                                    party = siglaPartido,
+                                    state = siglaUf,
+                                    legislature = idLegislatura),
+                           by = c("name", "legislature"))
 
   return(data)
 
