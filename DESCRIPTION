@@ -12,3 +12,4 @@ Imports:
 	httr,
 	rvest
 RoxygenNote: 6.1.1
+LazyData: true
