@@ -1,4 +1,6 @@
 pdf_downloader <- function(day, month, year) {
+  `%>%` <- dplyr::`%>%`
+
   url <- 'https://www.camara.leg.br/internet/plenario/notas/notas.asp'
   query <- list('dia'= day,
                 'mes'= month,
@@ -47,6 +49,7 @@ pdf_downloader <- function(day, month, year) {
 
 
 pdf_parser <- function(file) {
+  `%>%` <- dplyr::`%>%`
   pdf <- pdftools::pdf_text(file)
 
 
@@ -129,6 +132,8 @@ pdf_parser <- function(file) {
 
 get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
 
+  `%>%` <- dplyr::`%>%`
+
   initial.date <- as.Date(initial.date, format)
   final.date <- as.Date(final.date, format)
 
@@ -147,7 +152,7 @@ get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
   data <- purrr::map_df(files, pdf_parser)
   data <- dplyr::left_join(data,
                            dep_data %>%
-                             select(name = nome,
+                             dplyr::select(name = nome,
                                     party = siglaPartido,
                                     state = siglaUf,
                                     legislature = idLegislatura),
