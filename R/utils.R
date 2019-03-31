@@ -145,6 +145,13 @@ get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
   files <- purrr::pmap(search_grid, pdf_downloader) %>% unlist()
 
   data <- purrr::map_df(files, pdf_parser)
+  data <- dplyr::left_join(data,
+                           dep_data %>%
+                             select(name = nome,
+                                    party = siglaPartido,
+                                    state = siglaUf,
+                                    legislature = idLegislatura),
+                           by = c("name", "legislature"))
 
   return(data)
 
