@@ -35,7 +35,7 @@ pdf_downloader <- function(day, month, year) {
   files <- c()
   if(length(links_plenario) > 0) {
     for (i in seq_along(links_plenario)) {
-      file_name <- paste0(i,'_',day,'_',month,'_',year)
+      file_name <- tempfile()
       download.file(
         links_plenario[i],
         file_name,
@@ -151,7 +151,7 @@ get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
 
   data <- purrr::map_df(files, pdf_parser)
   data <- dplyr::left_join(data,
-                           dep_data %>%
+                           nlpcam::dep_data %>%
                              dplyr::select(name = nome,
                                     party = siglaPartido,
                                     state = siglaUf,
