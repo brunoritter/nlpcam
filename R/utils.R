@@ -23,28 +23,35 @@ pdf_downloader <- function(day, month, year) {
     rvest::html_children() %>%
     rvest::html_text()
 
-  solene <- which(grepl('Solene', text))
-
-  if (length(solene) > 0) {
-    links_plenario <- links[-solene]
-  } else {
-    links_plenario <- links
+    if (length(links) > 0 ) {
+      solene <- which(grepl('Solene|Congresso', text))
+    
+#      links <- 
+#        ifelse(
+#          grepl('leg\\.br', links), 
+#          links,  
+#          paste0('https://www.camara.leg.br', links))
+      
+      if (length(solene) > 0) {
+        links_plenario <- links[-solene]
+      } else {
+        links_plenario <- links
+      }
+    
+    
+      files <- c()
+      if(length(links_plenario) > 0) {
+        for (i in seq_along(links_plenario)) {
+          file_name <- tempfile()
+          download.file(
+            links_plenario[i],
+            file_name,
+            mode = 'wb')
+          files <- append(files, file_name)
+        }}
+    
+      return(files)
   }
-
-
-  files <- c()
-  if(length(links_plenario) > 0) {
-    for (i in seq_along(links_plenario)) {
-      file_name <- tempfile()
-      download.file(
-        links_plenario[i],
-        file_name,
-        mode = 'wb')
-      files <- append(files, file_name)
-    }}
-
-  return(files)
-
 }
 
 
@@ -112,6 +119,7 @@ pdf_parser <- function(file) {
 
   citations$word_count <- stringr::str_count(citations$quote, '\\S+')
   citations$sequence <- c(1:nrow(citations))
+  print(paste(date, '- File Parsed'))
   return(citations)
 
 }
@@ -136,6 +144,7 @@ get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
 
   initial.date <- as.Date(initial.date, format)
   final.date <- as.Date(final.date, format)
+  
 
   search_grid <-
     seq(initial.date,final.date, by = 'days') %>%
@@ -145,7 +154,15 @@ get_data <- function(initial.date, final.date, format = '%d/%m/%Y') {
       month = lubridate::month(.),
       year = lubridate::year(.)
     ) %>%
-    dplyr::select(-.)
+    dplyr::select(-.) %>% 
+    dplyr::filter(
+      dplyr::case_when(
+              month == 1 ~ F,
+              month == 2 & day == 1 ~ F,
+              month == 7 & day > 17 ~ F,
+              month == 12 & day > 22 ~ F,
+              TRUE ~ TRUE
+    ))
 
   files <- purrr::pmap(search_grid, pdf_downloader) %>% unlist()
 
