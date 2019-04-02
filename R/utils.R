@@ -1,5 +1,6 @@
 pdf_downloader <- function(day, month, year) {
-  `%>%` <- dplyr::`%>%`
+  `
+  %>%` <- dplyr::`%>%`
 
   url <- 'https://www.camara.leg.br/internet/plenario/notas/notas.asp'
   query <- list('dia'= day,
@@ -56,71 +57,75 @@ pdf_downloader <- function(day, month, year) {
 
 
 pdf_parser <- function(file) {
+  
   `%>%` <- dplyr::`%>%`
-  pdf <- pdftools::pdf_text(file)
-
-
-  date <-
-    stringr::str_extract(pdf[1], '[\\d]{2}\\/[\\d]{2}\\/[\\d]{4}')
-
-
-  clean <- stringr::str_replace(pdf, '.*\\\r', '')
-  clean <- paste(clean, collapse = ' ')
-  clean <- gsub('\\n|\\r', ' ', clean)
-
-  citations <-
-    unlist(strsplit(clean, '(?<=.)(?= (O SR\\.|A SRA\\.) .*\\(.*\\) - )', perl = T))
-  citations <- dplyr::tibble(citations)
-  citations$identifier <-
-    stringr::str_extract(citations$citations, ' (O SR\\.|A SRA\\.) .*\\(.*\\) - ')
-  citations$gender <-
-    ifelse(grepl(
-      citations$identifier,
-      pattern = 'SR\\.',
-      ignore.case = F
-    ),
-    'M',
-    'F')
-
-  citations$name <-
-    gsub('( O SR\\. | A SRA\\. )(.*)( \\(.*)', '\\2', citations$identifier)
-
-
-  citations$president <- ifelse(citations$name == 'PRESIDENTE', 1, 0)
-  citations$name <- ifelse(citations$name == 'PRESIDENTE',
-                           sub('(.*\\()(.*)(\\..*)', '\\2', x = citations$identifier) %>% toupper(),
-                           citations$name)
-
-  session_type <-
-    stringr::str_extract(citations$citations[1], '(?<=\\()SESSÃO.*?(?=\\))')
-  session_n <-
-    unlist(stringr::str_extract_all(citations$citations[1], '[\\d]+ª SESSÃO'))[2] %>% gsub(pattern = 'ª SESSÃO', replacement =  '')
-  session_legislature <-
-    stringr::str_extract(citations$citations[1] , '[\\d]+(?=ª LEGISLATURA)')
-  citations$citations <-
-    gsub('( (O SR\\.|A SRA\\.) .*\\(.*\\) - )(.*)',
-         '\\3',
-         citations$citations)
-
-  session_start_time <-
-    stringr::str_extract_all(pattern = '(?<=Às )[\\d]+|[\\d]+(?= minutos)', string =  citations$citations[1]) %>% unlist() %>% paste(collapse = ':')
-
-  session_end_time <-
-    stringr::str_extract_all(pattern = '(?<=Encerra-se a sessão às )[\\d]+|[\\d]+(?= minutos)', string =  citations$citations[nrow(citations)]) %>% unlist() %>% paste(collapse = ':')
-
-  citations <-
-    citations %>% dplyr::select(name, president, gender, quote = citations) %>% dplyr::filter(!is.na(name))
-  citations$date <- date
-  citations$session_type <- session_type
-  citations$session_n <- session_n
-  citations$session_start_time <- session_start_time
-  citations$session_end_time <- session_end_time
-  citations$legislature <- session_legislature
-
-  citations$word_count <- stringr::str_count(citations$quote, '\\S+')
-  citations$sequence <- c(1:nrow(citations))
-  print(paste(date, '- File Parsed'))
-  return(citations)
+  
+  if (file.size(file) > 0) {
+    
+    pdf <- pdftools::pdf_text(file)
+  
+    date <-
+      stringr::str_extract(pdf[1], '[\\d]{2}\\/[\\d]{2}\\/[\\d]{4}')
+  
+  
+    clean <- stringr::str_replace(pdf, '.*\\\r', '')
+    clean <- paste(clean, collapse = ' ')
+    clean <- gsub('\\n|\\r', ' ', clean)
+  
+    citations <-
+      unlist(strsplit(clean, '(?<=.)(?= (O SR\\.|A SRA\\.) .*\\(.*\\) - )', perl = T))
+    citations <- dplyr::tibble(citations)
+    citations$identifier <-
+      stringr::str_extract(citations$citations, ' (O SR\\.|A SRA\\.) .*\\(.*\\) - ')
+    citations$gender <-
+      ifelse(grepl(
+        citations$identifier,
+        pattern = 'SR\\.',
+        ignore.case = F
+      ),
+      'M',
+      'F')
+  
+    citations$name <-
+      gsub('( O SR\\. | A SRA\\. )(.*)( \\(.*)', '\\2', citations$identifier)
+  
+  
+    citations$president <- ifelse(citations$name == 'PRESIDENTE', 1, 0)
+    citations$name <- ifelse(citations$name == 'PRESIDENTE',
+                             sub('(.*\\()(.*)(\\..*)', '\\2', x = citations$identifier) %>% toupper(),
+                             citations$name)
+  
+    session_type <-
+      stringr::str_extract(citations$citations[1], '(?<=\\()SESSÃO.*?(?=\\))')
+    session_n <-
+      unlist(stringr::str_extract_all(citations$citations[1], '[\\d]+ª SESSÃO'))[2] %>% gsub(pattern = 'ª SESSÃO', replacement =  '')
+    session_legislature <-
+      stringr::str_extract(citations$citations[1] , '[\\d]+(?=ª LEGISLATURA)')
+    citations$citations <-
+      gsub('( (O SR\\.|A SRA\\.) .*\\(.*\\) - )(.*)',
+           '\\3',
+           citations$citations)
+  
+    session_start_time <-
+      stringr::str_extract_all(pattern = '(?<=Às )[\\d]+|[\\d]+(?= minutos)', string =  citations$citations[1]) %>% unlist() %>% paste(collapse = ':')
+  
+    session_end_time <-
+      stringr::str_extract_all(pattern = '(?<=Encerra-se a sessão às )[\\d]+|[\\d]+(?= minutos)', string =  citations$citations[nrow(citations)]) %>% unlist() %>% paste(collapse = ':')
+  
+    citations <-
+      citations %>% dplyr::select(name, president, gender, quote = citations) %>% dplyr::filter(!is.na(name))
+    citations$date <- date
+    citations$session_type <- session_type
+    citations$session_n <- session_n
+    citations$session_start_time <- session_start_time
+    citations$session_end_time <- session_end_time
+    citations$legislature <- session_legislature
+  
+    citations$word_count <- stringr::str_count(citations$quote, '\\S+')
+    citations$sequence <- c(1:nrow(citations))
+    print(paste(date, '- File Parsed'))
+    return(citations)
+  }
 
 }
 
